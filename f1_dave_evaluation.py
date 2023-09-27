@@ -35,6 +35,9 @@ wait_for_key()
 lidar = []
 servo = []
 speed = []
+test_lidar = []
+test_servo = []
+test_speed = []
 max_speed = 0
 temp_cnt = 1
 
@@ -43,92 +46,65 @@ for pth in ['qualifier_2/out.bag', 'f2.bag', 'f4.bag','test_data_nicholes.bag', 
         print(f"out.bag doesn't exists in {pth}")
         exit(0)
     good_bag = rosbag.Bag(pth)
+
+    lidar_data = []
+    servo_data = []
+    speed_data = []
+
     for topic, msg, t in good_bag.read_messages():
         if topic == 'Lidar':
             ranges = msg.ranges
 
             # Remove quandrant of LIDAR directly behind us
-            lidar.append(ranges)
+            lidar_data.append(ranges)
 
         if topic == 'Ackermann':
             data = msg.drive.steering_angle
             s_data = msg.drive.speed
-            servo.append(data)
+            servo_data.append(data)
             if s_data>max_speed:
                 max_speed = s_data
             s_data = linear_map(s_data, 0, 5, 0, 1)
-            speed.append(s_data)
+            speed_data.append(s_data)
 
-    print(f'Loaded {len(lidar)} samples')
-    print(f'Shape of Lidar: {len(lidar)}, Servo: {len(servo)}, Speed: {len(speed)}')
-    print(max(speed))
+
+    
+    # Compute the indices for the middle 5% of data
+    middle_5_percent = int(0.08 * len(lidar_data))
+    start_idx = (len(lidar_data) - middle_5_percent) // 2
+    end_idx = start_idx + middle_5_percent
+   
+
+    lidar.extend(lidar_data[:start_idx] + lidar_data[end_idx:])
+    servo.extend(servo_data[:start_idx] + servo_data[end_idx:])
+    speed.extend(speed_data[:start_idx] + speed_data[end_idx:])
+
+    test_lidar.extend(lidar_data[start_idx:end_idx])
+    test_servo.extend(servo_data[start_idx:end_idx])
+    test_speed.extend(speed_data[start_idx:end_idx])
+    
+
+    print(f'\nData in {pth}:')
+    print(f'Shape of Train Data --- Lidar: {len(lidar)}, Servo: {len(servo)}, Speed: {len(speed)}')
+    print(f'Shape of Test Data --- Lidar: {len(test_lidar)}, servo: {len(test_servo)}, Speed: {len(test_speed)}')
+    
     wait_for_key()
+
 
 lidar = np.asarray(lidar)
 servo = np.asarray(servo)
 speed = np.asarray(speed)
-print(f'Loaded {len(lidar)} samples')
+print(f'Loaded {len(lidar)} Training samples')
+test_lidar = np.asarray(test_lidar)
+test_servo = np.asarray(test_servo)
+test_speed = np.asarray(test_speed)
+print(f'Loaded {len(test_lidar)} Testing samples')
 
-print(speed)
 assert len(lidar) == len(servo) == len(speed)
-print(f'Loaded {len(lidar)} samples')
-print(f'Shape of Lidar: {lidar.shape}, Servo: {servo.shape}, Speed: {speed.shape}')
+assert len(test_lidar) == len(test_servo) == len(test_speed)
 
-print(f'norm_speed: {np.linalg.norm(speed)}')
 wait_for_key()
 
-
-#------------------------------------------------
-#Testing Data
-#------------------------------------------------
-print("---------------------\nTesting Data\n----------------------")
-#speed = speed/norm_speed
-t_lidar = []
-t_servo = []
-t_speed = []
-t_max_speed = 0
-t_temp_cnt = 1
-
-for pth in ['test_data_nicholes.bag', 'test_data_nicholes_r.bag']:
-    if(not os.path.exists(pth)):
-        print(f"out.bag doesn't exists in {pth}")
-        exit(0)
-    good_bag = rosbag.Bag(pth)
-    for topic, msg, t in good_bag.read_messages():
-        if topic == 'Lidar':
-            ranges = msg.ranges
-
-            # Remove quandrant of LIDAR directly behind us
-            t_lidar.append(ranges)
-
-        if topic == 'Ackermann':
-            data = msg.drive.steering_angle
-            s_data = msg.drive.speed
-            t_servo.append(data)
-
-            if s_data>max_speed:
-                max_speed = s_data
-            s_data = linear_map(s_data, 0, 5, 0, 1)
-            t_speed.append(s_data)
-
-    print(f'Loaded {len(t_lidar)} samples')
-    print(f'Shape of Lidar: {len(t_lidar)}, Servo: {len(t_servo)}, Speed: {len(t_speed)}')
-    print(max(t_speed))
-    wait_for_key()
-
-t_lidar = np.asarray(t_lidar)
-t_servo = np.asarray(t_servo)
-t_speed = np.asarray(t_speed)
-print(f'Loaded {len(t_lidar)} samples')
-
-print(t_speed)
-assert len(t_lidar) == len(t_servo) == len(t_speed)
-print(f'Loaded {len(t_lidar)} samples')
-print(f'Shape of Lidar: {t_lidar.shape}, Servo: {t_servo.shape}, Speed: {t_speed.shape}')
-print(f'norm_speed: {np.linalg.norm(t_speed)}')
-wait_for_key()
-t_test_data = np.concatenate((t_servo[:, np.newaxis], t_speed[:, np.newaxis]), axis=1)
-print(f'Test Data (servo,speed): {t_test_data.shape}')
 
 
 #======================================================
@@ -136,14 +112,15 @@ print(f'Test Data (servo,speed): {t_test_data.shape}')
 #======================================================
 print('Spliting Data to Train/Test')
 
-test_data = np.concatenate((servo[:, np.newaxis], speed[:, np.newaxis]), axis=1)
+train_data = np.concatenate((servo[:, np.newaxis], speed[:, np.newaxis]), axis=1)
+test_data =  np.concatenate((test_servo[:, np.newaxis], test_speed[:, np.newaxis]), axis=1)
 
-print(f'Train Data(servo, speed): {test_data.shape}')
+print(f'Train Data(lidar): {lidar.shape}')
+print(f'Train Data(servo, speed): {train_data.shape}')
 
-x_train, x_test, y_train, y_test = train_test_split(lidar, test_data, test_size = 0.15, shuffle=False)
+#x_train, x_test, y_train, y_test = train_test_split(lidar, train_data, test_size = 0.15, shuffle=False)
+x_train, x_test, y_train, y_test = train_test_split(lidar, train_data, test_size = 0.15,  stratify = train_data)
 
-#x_train, x_test, y_train, y_test = train_test_split(lidar, test_data, test_size = 0.15, shuffle=False)
-#x_train, x_test, y_train, y_test = train_test_split(lidar, servo, test_size = 0.35)
 print(f'Train Size: {len(x_train)}')
 print(f'Train Size, y_train: {y_train.shape}')
 print(f'Validation Size: {len(x_test)}')
@@ -192,7 +169,7 @@ batch_size = 64
 num_epochs = 20
 
 start_time = time.time()
-history = model.fit(lidar, test_data, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
+history = model.fit(lidar, train_data, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 #history = model.fit(lidar, test_data, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 #history = model.fit(x_train, y_train, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 
@@ -220,28 +197,29 @@ print("Model Evaluation")
 print("==========================================")
 
 
-test_loss = model.evaluate(t_lidar, t_test_data)
+test_loss = model.evaluate(test_lidar, test_data)
 #test_loss = model.evaluate(x_test, y_test)
 print(f'test_loss = {test_loss}')
 
-y_pred = model.predict(x_test)
+#y_pred = model.predict(x_test)
 
-#y_pred = model.predict(t_lidar)
+y_pred = model.predict(test_lidar)
 #y_test = t_test_data
 #print(f'y_pred.shape: {y_pred.shape}')
 #accuracy = np.mean(y_pred == y_test)
 
-r2 = r2_score(y_test, y_pred)
-error = mean_squared_error(y_test, y_pred)
+#r2 = r2_score(y_test, y_pred)
+r2 = r2_score(test_data, y_pred)
+#error = mean_squared_error(y_test, y_pred)
+error = mean_squared_error(test_data, y_pred)
 
-#print(f'Accuracy: {accuracy:.3f}%')
 print('\nOverall Evaluation:')
 print(f'r2: {r2:.3f}')
 print(f'Error: {error}')
 
-speed_test_loss = model.evaluate(t_lidar, t_test_data)
-x_test = t_lidar
-y_test = t_test_data
+speed_test_loss = model.evaluate(test_lidar, test_data)
+x_test = test_lidar
+y_test = test_data
 speed_y_pred = model.predict(x_test)[:, 1]  # Extracting the speed predictions
 
 # Calculate R-squared (R2) score for Speed
@@ -356,20 +334,16 @@ def prune_neurons(model, num_neurons_to_remove):
     model.summary()
 
 
-# Example usage
-# Create a sample Keras model (replace with your actual model)
 # Assuming you have a model defined and trained before calling prune_neurons
 
 # Number of neurons to remove (change as needed)
 #num_neurons_to_remove = 10
 
-# Prune the model
-#prune_neurons(model, num_neurons_to_remove)
 import tensorflow_model_optimization as tfmot
 from tensorflow_model_optimization.sparsity.keras import prune_low_magnitude, PolynomialDecay
 
 # Compute end step to finish pruning after 2 epochs.
-batch_size = 64
+'''batch_size = 64
 epochs = 2
 validation_split = 0.35  # 15% of the training set will be used for validation set.
 
@@ -381,11 +355,32 @@ pruning_params = {
     'pruning_schedule': PolynomialDecay(initial_sparsity=0.50, final_sparsity=0.80, begin_step=0, end_step=end_step)
 }
 
-# Prune the model
-pruned_model = prune_low_magnitude(model) #, **pruning_params)
+# Prune the model'''
+# Helper function uses `prune_low_magnitude` to make only the 
+# Dense layers train with pruning.
+
+'''def apply_pruning_to_dense(layer):
+  if isinstance(layer, tf.keras.layers.Dense):
+    return tfmot.sparsity.keras.prune_low_magnitude(layer)
+  return layer
+
+
+#pruned_model = prune_low_magnitude(model) #, **pruning_params)
+
+pruned_model = tf.keras.models.clone_model(
+    base_model,
+    clone_function=apply_pruning_to_dense,
+)
+
 
 # Print the model summary after pruning
 pruned_model.summary()
+
+i = tf.keras.Input(shape=(1081,1))
+x = tfmot.sparsity.keras.prune_low_magnitude(tf.keras.layers.Dense(25))(7)
+o = tf.keras.layers.Flatten()(x)
+model_for_pruning = tf.keras.Model(inputs=i, outputs=o)
+
 
 # Compile the model
 pruned_model.compile(optimizer='adam', loss='huber')
@@ -407,12 +402,12 @@ history = pruned_model.fit(
     callbacks=callbacks
 )
 
+# Print the model summary after pruning
+pruned_model.summary()
 # Save the pruned model
 pruned_model.save('pruned_model.h5')
 print("Pruned model saved.")
-
-
-wait_for_key()
+wait_for_key()'''
 
 #======================================================
 # Save Model
