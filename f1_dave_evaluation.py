@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 import tensorflow as tf
+from tensorflow.python.profiler import profiler_client
+from tensorflow.keras.models import Model
 import keras
 import numpy as np
 import pandas as pd
@@ -31,7 +33,7 @@ wait_for_key()
 #------------------------------------------------
 #1st and stable way of processing data
 #------------------------------------------------
-
+'''
 overall_samples = []
 lidar = []
 servo = []
@@ -119,26 +121,21 @@ assert len(test_lidar) == len(test_servo) == len(test_speed)
 
 
 wait_for_key()
-
+'''
 #------------------------------------------------
 #2nd way of processing data
 #------------------------------------------------
-'''
-overall_samples = []
+total_number_samples = 0
 lidar = []
 servo = []
 speed = []
 test_lidar = []
 test_servo = []
 test_speed = []
-validation_lidar = []
-validation_servo = []
-validation_speed = []
-
 max_speed = 0
 temp_cnt = 1
 
-for pth in ['qualifier_2/out.bag', 'f2.bag', 'f4.bag','test_data_nicholes.bag', 'test_data_nicholes_r.bag']:
+for pth in ['../qualifier_2/out.bag', '../f2.bag', '../f4.bag','../test_data_nicholes.bag', '../test_data_nicholes_r.bag']:
     if(not os.path.exists(pth)):
         print(f"out.bag doesn't exists in {pth}")
         exit(0)
@@ -151,7 +148,7 @@ for pth in ['qualifier_2/out.bag', 'f2.bag', 'f4.bag','test_data_nicholes.bag', 
     for topic, msg, t in good_bag.read_messages():
         if topic == 'Lidar':
             ranges = msg.ranges
-
+            total_number_samples+=1
             # Remove quandrant of LIDAR directly behind us
             lidar_data.append(ranges)
 
@@ -164,53 +161,53 @@ for pth in ['qualifier_2/out.bag', 'f2.bag', 'f4.bag','test_data_nicholes.bag', 
             s_data = linear_map(s_data, 0, 5, 0, 1)
             speed_data.append(s_data)
 
+    lidar_data = np.array(lidar_data) 
+    servo_data = np.array(servo_data)
+    speed_data = np.array(speed_data)
+    data = np.concatenate((servo_data[:, np.newaxis], speed_data[:, np.newaxis]), axis=1)
 
+    from sklearn.utils import shuffle
+    shuffled_data = shuffle(data, random_state = 62)
+    shuffled_lidar_data = shuffle(lidar_data, random_state = 62)
+    # Check the shape of shuffled_data to ensure it has two columns
+    print("Shape of shuffled_data:", shuffled_data.shape)
 
-    # Compute the indices for the middle 5% of data
-    middle_5_percent = int(0.08 * len(lidar_data))
-    start_idx = (len(lidar_data) - middle_5_percent) // 2
-    end_idx = start_idx + middle_5_percent
+    # Split the shuffled data into train and test sets
+    train_ratio = 0.85  # Adjust the ratio as needed
+    train_samples = int(train_ratio * len(shuffled_lidar_data))
+    x_train_bag, x_test_bag = shuffled_lidar_data[:train_samples], shuffled_lidar_data[train_samples:]
 
-    test_lidar.extend(lidar_data[start_idx:end_idx])
-    test_servo.extend(servo_data[start_idx:end_idx])
-    test_speed.extend(speed_data[start_idx:end_idx])
+    # Check the shape of x_train_bag and x_test_bag
+    print("Shape of x_train_bag:", x_train_bag.shape)
+    print("Shape of x_test_bag:", x_test_bag.shape)
 
-    train_lidar_data = lidar_data[:start_idx] + lidar_data[end_idx:]
-    train_servo_data = servo_data[:start_idx] + servo_data[end_idx:]
-    train_speed_data = speed_data[:start_idx] + speed_data[end_idx:]
+    # Extract servo and speed values from y_train_bag and y_test_bag
+    y_train_bag = shuffled_data[:train_samples]
+    y_test_bag = shuffled_data[train_samples:]
 
-    middle_5_percent = int(0.08 * len(train_lidar_data))
-    start_idx = (len(train_lidar_data) - middle_5_percent) // 2
-    end_idx = start_idx + middle_5_percent
+    # Check the shape of y_train_bag and y_test_bag
+    print("Shape of y_train_bag:", y_train_bag.shape)
+    print("Shape of y_test_bag:", y_test_bag.shape)
 
-    lidar.extend(train_lidar_data[:start_idx] + train_lidar_data[end_idx:])
-    servo.extend(train_servo_data[:start_idx] + train_servo_data[end_idx:])
-    speed.extend(train_speed_data[:start_idx] + train_speed_data[end_idx:])
+    # Extend the appropriate lists
+    lidar.extend(x_train_bag)
+    servo.extend(y_train_bag[:, 0])  # Extract servo values
+    speed.extend(y_train_bag[:, 1])  # Extract speed values
 
-    validation_lidar.extend(train_lidar_data[start_idx:end_idx])
-    validation_servo.extend(train_servo_data[start_idx:end_idx])
-    validation_speed.extend(train_speed_data[start_idx:end_idx])
-    
-    overall_samples.extend(lidar_data)
+    test_lidar.extend(x_test_bag)
+    test_servo.extend(y_test_bag[:, 0])  # Extract servo values for test
+    test_speed.extend(y_test_bag[:, 1])  # Extract speed values for test
     print(f'\nData in {pth}:')
     print(f'Shape of Train Data --- Lidar: {len(lidar)}, Servo: {len(servo)}, Speed: {len(speed)}')
-    print(f'Shape of Validation Data --- Lidar: {len(validation_lidar)}, servo: {len(validation_servo)}, Speed: {len(validation_speed)}')
     print(f'Shape of Test Data --- Lidar: {len(test_lidar)}, servo: {len(test_servo)}, Speed: {len(test_speed)}')
-    
+
     wait_for_key()
 
-
-overall_samples = np.asarray(overall_samples)
-total_number_samples = len(overall_samples)
 print(f'Overall Samples = {total_number_samples}')
 lidar = np.asarray(lidar)
 servo = np.asarray(servo)
 speed = np.asarray(speed)
 print(f'Loaded {len(lidar)} Training samples ---- {(len(lidar)/total_number_samples)*100:0.2f}% of overall')
-validation_lidar = np.asarray(validation_lidar)
-validation_servo = np.asarray(validation_servo)
-validation_speed = np.asarray(validation_speed)
-print(f'Loaded {len(validation_lidar)} Training samples ---- {(len(validation_lidar)/len(lidar))*100:0.2f}% of training samples')
 test_lidar = np.asarray(test_lidar)
 test_servo = np.asarray(test_servo)
 test_speed = np.asarray(test_speed)
@@ -218,9 +215,9 @@ print(f'Loaded {len(test_lidar)} Testing samples ---- {(len(test_lidar)/total_nu
 
 assert len(lidar) == len(servo) == len(speed)
 assert len(test_lidar) == len(test_servo) == len(test_speed)
-
+         
 wait_for_key()
-'''
+
 #======================================================
 # Split Dataset
 #======================================================
@@ -230,8 +227,10 @@ train_data = np.concatenate((servo[:, np.newaxis], speed[:, np.newaxis]), axis=1
 test_data =  np.concatenate((test_servo[:, np.newaxis], test_speed[:, np.newaxis]), axis=1)
 #validation_data = np.concatenate((validation_servo[:, np.newaxis], validation_speed[:, np.newaxis]), axis=1)
 
+print(f'Train Data(lidar): {lidar.shape}')
 print(f'Train Data(servo,speed): {train_data.shape}')
 #print(f'Validation Data(servo, speed): {validation_data.shape}')
+print(f'Test Data(lidar): {test_lidar.shape}')
 print(f'Test Data(servo, speed): {test_data.shape}')
 
 
@@ -275,6 +274,20 @@ model.compile(optimizer=optimizer, loss='huber')#, metrics = [r2])
 #huber is noisy data else 'mean_squared_error'
 
 print(model.summary())
+
+# Print a summary of the model to get the number of parameters
+model.summary()
+
+# Calculate FLOPs
+@tf.function
+def get_flops():
+    model(test_lidar)
+
+graph = tf.function(get_flops).get_concrete_function().graph
+flops = tf.profiler.experimental.profile(graph, options=tf.profiler.experimental.ProfilerOptionBuilder.float_operation())
+print('FLOPs: ', flops.total_float_ops)
+
+
 wait_for_key()
 
 #======================================================
@@ -290,6 +303,11 @@ history = model.fit(lidar, train_data, epochs=num_epochs, batch_size=batch_size,
 #history = model.fit(lidar, train_data, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 #history = model.fit(lidar, test_data, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 #history = model.fit(x_train, y_train, epochs=num_epochs, batch_size=batch_size, validation_data=(x_test, y_test))
+print(f'=============>{int(time.time() - start_time)} seconds<=============')
+
+
+
+
 
 # Plot training and validation losses 
 print(history.history.keys())
@@ -299,10 +317,9 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-
+plt.savefig('./graphs/Loss_curve.png')
 #plt.show()
-
-#print(f'=============>{int(time.time() - start_time)} seconds<=============')
+plt.close()
 
 wait_for_key()
 
@@ -416,7 +433,6 @@ period = 1.0 / hz
 
 # Initialize a list to store inference times in microseconds
 inference_times_micros = []
-
 start = time.time()
 
 # Iterate through the lidar data
@@ -436,13 +452,14 @@ for lidar_data in output_lidar:
     output = interpreter.get_tensor(output_details[0]['index'])
     dur = time.time() - ts
 
+
     # Convert inference time to microseconds
     inference_time_micros = dur * 1e6
     inference_times_micros.append(inference_time_micros)
 
     # Print inference time information
     if dur > period:
-        print("%.3f: took %.2f microseconds - deadline miss." % (ts - start, int(dur * 1000000)))
+        print("%.3f: took %.2f milliseconds - deadline miss." % (ts - start, int(dur * 1e3)))
     #else:
         #print("%.3f: took %.2f microseconds" % (ts - start, dur * 1000000))
 
@@ -458,19 +475,30 @@ for lidar_data in output_lidar:
 average_inference_time_micros = np.mean(inference_times_micros)
 max_inference_time_micros = np.max(inference_times_micros)
 
+# Convert inference times from microseconds to milliseconds
+inference_times_milli = np.array(inference_times_micros) / 1000
+average_inference_time_milli = np.mean(inference_times_milli)
+max_inference_time_milli = np.max(inference_times_milli)
+std_deviation_milli = np.std(inference_times_milli)
+
+print("STD Inference Time: %.2f milliseconds" % std_deviation_milli)
+print("Average Inference Time: %.2f milliseconds" % average_inference_time_milli)
+print("Maximum Inference Time: %.2f milliseconds" % max_inference_time_milli)
 # Print inference time statistics
 print("Average Inference Time: %.2f microseconds" % average_inference_time_micros)
 print("Maximum Inference Time: %.2f microseconds" % max_inference_time_micros)
 
 # Plot inference times
-arr = np.array(inference_times_micros)
+arr = np.array(inference_times_milli)
 perc99 = np.percentile(arr, 99)
 arr = arr[arr < perc99]
 plt.plot(arr)
+plt.xlim(0, len(arr))
+plt.ylim(0, max(inference_times_micros))
 plt.xlabel('Inference Iteration')
 plt.ylabel('Inference Time (microseconds)')
 plt.title('Inference Time per Iteration')
-
+#plt.show()
 # Save the plot as an image
 plt.savefig('./graphs/inference_time_plot.png')
 # Close the plot to free up resources
