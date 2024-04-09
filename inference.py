@@ -14,47 +14,48 @@ from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
 import csv
 
-lid = '/scan_filtered' #'/scan_filtered' #'/scan'
-joy = '/vesc/joy'
-rpm = '/vesc/commands/motor/speed'
-prev = 0
-curr = 0
-start_position = None
-total_distance = 0.0
+# ROS topics
+lid = '/scan_filtered'  # Lidar topic
+joy = '/vesc/joy'  # Joystick topic
+rpm = '/vesc/commands/motor/speed'  # Wheel speed topic
 
-is_joy = rospy.get_param("/is_joy")
-print(f'is_joy: {is_joy}')
+# Global variables
+prev = 0  # Previous button state
+curr = 0  # Current button state
+start_position = None  # Start position for calculating distance traveled
+total_distance = 0.0  # Total distance traveled
+lidar_data = None  # Placeholder for Lidar data
+is_joy = rospy.get_param("/is_joy")  # Flag for manual control
 
-#===================================================
+# CSV file setup
 csv_filename = '80Hz_main.csv'
 csv_file = open(csv_filename, 'w')
 csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Timestamp','Wheel_Speed','Speed','Steering','Inf_Time'])
-#===================================================
+csv_writer.writerow(['Timestamp', 'Wheel_Speed', 'Speed', 'Steering', 'Inf_Time'])
+
+# Callback to receive Lidar data
 def callback(l):
     global lidar_data
-    ldata = l.ranges[::2]
-    #eighth = int(len(ldata)/8)
-    #ldata = np.array(ldata[eighth:-eighth]).astype(np.float32)
-    ldata = np.expand_dims(ldata, axis=-1).astype(np.float32)
-    ldata = np.expand_dims(ldata, axis=0)
-    lidar_data = ldata
+    ldata = l.ranges[::2]  # Down-sample Lidar data
+    ldata = np.expand_dims(ldata, axis=-1).astype(np.float32)  # Reshape and convert to float32
+    ldata = np.expand_dims(ldata, axis=0)  # Add batch dimension
+    lidar_data = ldata  # Store the processed Lidar data
 
+# Callback to receive button press from joystick
 def button_callback(j):
-    global prev
-    global curr
-    global is_joy
-    curr = j.buttons[0]
-    if(curr == 1 and curr!=prev):
-        print(f'X Pressed')
-        rospy.set_param('/is_joy', not is_joy)
-        is_joy = rospy.get_param("/is_joy")
-    prev = curr
+    global prev, curr, is_joy
+    curr = j.buttons[0]  # Get the state of button 0 (X button on Logitech Joystick)
+    if curr == 1 and curr != prev:  # Check for button press
+        rospy.set_param('/is_joy', not is_joy)  # Toggle the manual control flag
+        is_joy = rospy.get_param("/is_joy")  # Update the flag
+    prev = curr  # Update the previous button state
 
+# Callback to receive wheel speed
 def rpm_callback(r):
     global wheel_speed
-    wheel_speed = r
+    wheel_speed = r  # Store the received wheel speed
 
+# Callback to calculate distance traveled
 def odom_callback(msg):
     global start_position, total_distance
     if start_position is None:
@@ -62,102 +63,97 @@ def odom_callback(msg):
         return
     current_position = [msg.pose.pose.position.x, msg.pose.pose.position.y]
     distance = np.linalg.norm(np.array(current_position) - np.array(start_position))
-
     total_distance += distance
     start_position = current_position
-#===================================================
-def load_model():
-    global interpreter
-    global input_index
-    global output_details
-    global model
 
-    print("Model")    
-    model_name = 'f1_tenth_model_diff_TLN_M_Dag_float16.tflite'
-    #model = tf.keras.models.load_model(model_name+'.h5')
+# Load the TensorFlow Lite model
+def load_model():
+    global interpreter, input_index, output_details
+    model_name = 'Models/TLN_M_Dag_float16.tflite'
     interpreter = tf.lite.Interpreter(model_path=model_name)
     interpreter.allocate_tensors()
     input_index = interpreter.get_input_details()[0]["index"]
-    output_details = interpreter.get_output_details()#[0]["index"]
+    output_details = interpreter.get_output_details()
 
+# Run the Lidar data through the model and get servo and speed predictions
 def dnn_output():
-    global lidar_data
-    global inf_time
+    global lidar_data, inf_time
     if lidar_data is None:
         return 0.
-    ##lidar_data = np.expand_dims(lidar_data).astype(np.float32)
     
-    interpreter.set_tensor(input_index,lidar_data)
+    interpreter.set_tensor(input_index, lidar_data)
     start_time = time.time()
     interpreter.invoke()
-    inf_time = time.time() - start_time
-    inf_time = inf_time*1000
+    inf_time = (time.time() - start_time) * 1000  # Calculate inference time in milliseconds
     output = interpreter.get_tensor(output_details[0]['index'])
     
-    #servo = output[0]
-    servo = output[0,0]
-    speed = output[0,1]
-    #print(f'Servo: {servo}, Speed: {speed}')
-    print(f'Servo: {servo}')
+    servo = output[0, 0]  # Extract predicted servo angle
+    speed = output[0, 1]  # Extract predicted speed
+    
     return servo, speed
-    #return servo
 
+# Linear mapping function
 def linear_map(x, x_min, x_max, y_min, y_max):
     return (x - x_min) / (x_max - x_min) * (y_max - y_min) + y_min
+
+# Undo min-max scaling
 def undo_min_max_scale(x, x_min, x_max):
     return x * (x_max - x_min) + x_min
-#===================================================
+
+# ROS initialization
 rospy.init_node('Autonomous')
 servo_pub = rospy.Publisher('/vesc/low_level/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
-
 rospy.Subscriber(joy, Joy, button_callback)
 rospy.Subscriber(lid, LaserScan, callback)
 rospy.Subscriber(rpm, Float64, rpm_callback)
 rospy.Subscriber("/vesc/odom", Odometry, odom_callback)
 
-hz = 80
-rate = rospy.Rate(hz)
-period = 1.0/hz
-total_time = 0
-start_ts = time.time()
+hz = 80  # Frequency (Hz)
+rate = rospy.Rate(hz)  # Rate controller
+period = 1.0 / hz  # Time period
+start_ts = time.time()  # Start time
+
+# Load the TensorFlow Lite model
 load_model()
+
+# Main loop
 while not rospy.is_shutdown():
-    is_joy = rospy.get_param('/is_joy')
-    print('Manual Control: ON')
-    print("Distance traveled:", total_distance) 
+    is_joy = rospy.get_param('/is_joy')  # Check if manual control is on
+    print('Manual Control: ON' if is_joy else 'Autonomous Mode: ON')
+    print("Distance traveled:", total_distance)
+
     if not is_joy:
-        #print('Vroommmmmm......')
+        # Run the model inference and control the car
         ts = time.time()
         msg = AckermannDriveStamped()
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "base_link"
-        
+
+        # Get servo and speed predictions from the model
         servo, speed = dnn_output()
-        #servo = dnn_output()
-        speed = linear_map(speed, 0, 1, -.5, 7.0)#-0.7 to 7
-        #speed = linear_map(speed, 0, 1, -0.8, 7)#-0.6 to 7
-        #speed = 0.4 + (0.55 * lidar_data[0][lidar_data.shape[1]//2][0])
-        print(f'speed: {speed}')
-        print(f'Wheel Speed: {wheel_speed}')
-        print(f'Inference Time: {inf_time:.2f}ms')
+
+        # Map speed from model's output range to actual speed range
+        speed = linear_map(speed, 0, 1, -0.5, 7.0)
+
+        # Print info and write to CSV
+        print(f'Servo: {servo}, Speed: {speed}')
         csv_writer.writerow([time.time(), wheel_speed, speed, servo, inf_time])
-        msg.drive.speed = speed 
-        #undo_min_max_scale(speed, 0, 5.0) #linear_map(speed, 0, 1,0.5 ,5)
-        #speed = 1 
+
+        # Assign the speed and steering angle to the message
+        msg.drive.speed = speed
         msg.drive.steering_angle = servo
-        
-        #if abs(servo) <= 0.1:
-        #    speed = 1
 
-        #msg.drive.speed = speed
+        # Publish the message
+        servo_pub.publish(msg)
 
-
+        # Calculate and print execution time
         dur = time.time() - ts
         if dur > period:
-            print("%.3f: took %d ms - deadline miss."% (ts - start_ts, int(dur * 1000)))
+            print("%.3f: took %d ms - deadline miss." % (ts - start_ts, int(dur * 1000)))
         else:
-            print("%.3f: took %d ms"    % (ts - start_ts, int(dur * 1000)))
-        
-        servo_pub.publish(msg)
-        #print(msg)
+            print("%.3f: took %d ms" % (ts - start_ts, int(dur * 1000)))
+
     rate.sleep()
+
+# End of program
+print('\n-----------Recording Completed-----------')
