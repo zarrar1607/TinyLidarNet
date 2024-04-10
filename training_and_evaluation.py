@@ -135,7 +135,8 @@ assert len(test_lidar) == len(test_servo) == len(test_speed)
 #======================================================
 
 print('Splitting Data into Train/Test')
-
+train_data = np.concatenate((servo[:, np.newaxis], speed[:, np.newaxis]), axis=1)
+test_data =  np.concatenate((test_servo[:, np.newaxis], test_speed[:, np.newaxis]), axis=1)
 # Check array shapes
 print(f'Train Data(lidar): {lidar.shape}')
 print(f'Train Data(servo, speed): {servo.shape}, {speed.shape}')
@@ -337,7 +338,7 @@ def evaluate_model(model_path, test_lidar, test_data):
     print("Average Inference Time: %.2f microseconds" % average_inference_time_micros)
     print("Maximum Inference Time: %.2f microseconds" % max_inference_time_micros)
 
-    return y_pred
+    return y_pred, inference_times_micros
 
 model_files = [
     model_name+'_float16.tflite',
@@ -350,7 +351,7 @@ all_errors = []
 all_r2_scores = []
 
 for model_name in model_files:
-    y_pred = evaluate_model(model_name, test_lidar, test_data)
+    y_pred, inference_times_micros = evaluate_model(model_name, test_lidar, test_data)
     all_inference_times_micros.append(inference_times_micros)
     all_errors.append(mean_squared_error(test_data, y_pred))
     all_r2_scores.append(r2_score(test_data, y_pred))
