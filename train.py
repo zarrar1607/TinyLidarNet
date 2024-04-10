@@ -31,7 +31,7 @@ def huber_loss(y_true, y_pred, delta=1.0):
     mean_loss = np.mean(loss)
     return mean_loss
 #========================================================
-# Get Data
+# Global Data
 #========================================================
 
 # Initialize lists for data
@@ -42,18 +42,33 @@ test_lidar = []
 test_servo = []
 test_speed = []
 model_name = 'TLN_M_Dag'
+model_files = [
+    model_name+'_noquantized.tflite',
+    model_name+'_quantized.tflite'
+]
+dataset_path = [
+    './Dataset/qualifier_2/out.bag', 
+    './Dataset/f2.bag', 
+    './Dataset/f4.bag', 
+    './Dataset/dag_lab_2.bag'
+]
+down_sample_param = 2 # Down-sample Lidar data
+lr = 5e-5
+loss_function = 'huber'
+batch_size = 64
+num_epochs = 20
+hz = 40
 
 # Initialize variables for min and max speed
 max_speed = 0
 min_speed = 0
 
+#========================================================
+# Get Dataset
+#========================================================
+
 # Iterate through bag files
-for pth in [
-        './Dataset/qualifier_2/out.bag', 
-        './Dataset/f2.bag', 
-        './Dataset/f4.bag', 
-        './Dataset/dag_lab_2.bag'
-    ]:
+for pth in dataset_path:
     if not os.path.exists(pth):
         print(f"out.bag doesn't exist in {pth}")
         exit(0)
@@ -66,7 +81,7 @@ for pth in [
     # Read messages from bag file
     for topic, msg, t in good_bag.read_messages():
         if topic == 'Lidar':
-            ranges = msg.ranges[::2]
+            ranges = msg.ranges[::down_sample_param]
             lidar_data.append(ranges)
         if topic == 'Ackermann':
             data = msg.drive.steering_angle
@@ -167,17 +182,13 @@ model = tf.keras.Sequential([
 # Model Compilation
 #======================================================
 
-lr = 5e-5
 optimizer = Adam(lr)
-model.compile(optimizer=optimizer, loss='huber')
+model.compile(optimizer=optimizer, loss=loss_function)
 print(model.summary())
 
 #======================================================
 # Model Fit
 #======================================================
-
-batch_size = 64
-num_epochs = 20
 start_time = time.time()
 history = model.fit(lidar, np.concatenate((servo[:, np.newaxis], speed[:, np.newaxis]), axis=1),
                     epochs=num_epochs, batch_size=batch_size, validation_data=(test_lidar, test_data))
@@ -233,15 +244,7 @@ tflite_model = converter.convert()
 tflite_model_path = model_name + "_noquantized.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(tflite_model)
-
-# Save float16 quantized model
-converter.optimizations = [tf.lite.Optimize.DEFAULT]
-converter.target_spec.supported_types = [tf.float16]
-quantized_tflite_model = converter.convert()
-tflite_model_path = model_name + "_float16.tflite"
-with open(tflite_model_path, 'wb') as f:
-    f.write(quantized_tflite_model)
-    print(f"{model_name}_float16.tflite is saved. Copy this file to the robot.")
+    print(f"{model_name}_noquantized.tflite is saved.")
 
 # Save int8 quantized model
 rep_32 = lidar.astype(np.float32)
@@ -260,7 +263,7 @@ quantized_tflite_model = converter.convert()
 tflite_model_path = model_name + "_int8.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(quantized_tflite_model)
-    print(f"{model_name}_int8.tflite is saved. Copy this file to the robot.")
+    print(f"{model_name}_int8.tflite is saved.")
 
 print('Tf_lite Models also saved')
 
@@ -280,7 +283,6 @@ def evaluate_model(model_path, test_lidar, test_data):
     output_servo = []
     output_speed = []
 
-    hz = 80
     period = 1.0 / hz
 
     # Initialize a list to store inference times in microseconds
@@ -339,11 +341,6 @@ def evaluate_model(model_path, test_lidar, test_data):
     print("Maximum Inference Time: %.2f microseconds" % max_inference_time_micros)
 
     return y_pred, inference_times_micros
-
-model_files = [
-    model_name+'_float16.tflite',
-    model_name+'_quantized.tflite'
-]
 
 # Initialize empty lists to store results for each model
 all_inference_times_micros = []

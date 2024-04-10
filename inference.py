@@ -1,18 +1,12 @@
-import cv2
-import os
 import time
 import numpy as np
-import sys
-import math
 import rospy
-import message_filters
 import tensorflow as tf
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Joy
 from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Float64
 from nav_msgs.msg import Odometry
-import csv
 
 # ROS topics
 lid = '/scan_filtered'  # Lidar topic
@@ -26,17 +20,16 @@ start_position = None  # Start position for calculating distance traveled
 total_distance = 0.0  # Total distance traveled
 lidar_data = None  # Placeholder for Lidar data
 is_joy = rospy.get_param("/is_joy")  # Flag for manual control
-
-# CSV file setup
-csv_filename = '80Hz_main.csv'
-csv_file = open(csv_filename, 'w')
-csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Timestamp', 'Wheel_Speed', 'Speed', 'Steering', 'Inf_Time'])
+model_name = 'Models/TLN_M_Dag_float16.tflite'
+down_sample_param = 2 # Down-sample Lidar data
+hz = 40  # Frequency (Hz)
+rate = rospy.Rate(hz)  # Rate controller
+period = 1.0 / hz  # Time period
 
 # Callback to receive Lidar data
 def callback(l):
     global lidar_data
-    ldata = l.ranges[::2]  # Down-sample Lidar data
+    ldata = l.ranges[::down_sample_param]  
     ldata = np.expand_dims(ldata, axis=-1).astype(np.float32)  # Reshape and convert to float32
     ldata = np.expand_dims(ldata, axis=0)  # Add batch dimension
     lidar_data = ldata  # Store the processed Lidar data
@@ -69,7 +62,6 @@ def odom_callback(msg):
 # Load the TensorFlow Lite model
 def load_model():
     global interpreter, input_index, output_details
-    model_name = 'Models/TLN_M_Dag_float16.tflite'
     interpreter = tf.lite.Interpreter(model_path=model_name)
     interpreter.allocate_tensors()
     input_index = interpreter.get_input_details()[0]["index"]
@@ -108,11 +100,8 @@ rospy.Subscriber(lid, LaserScan, callback)
 rospy.Subscriber(rpm, Float64, rpm_callback)
 rospy.Subscriber("/vesc/odom", Odometry, odom_callback)
 
-hz = 80  # Frequency (Hz)
-rate = rospy.Rate(hz)  # Rate controller
-period = 1.0 / hz  # Time period
-start_ts = time.time()  # Start time
 
+start_ts = time.time()  # Start time
 # Load the TensorFlow Lite model
 load_model()
 
@@ -137,7 +126,6 @@ while not rospy.is_shutdown():
 
         # Print info and write to CSV
         print(f'Servo: {servo}, Speed: {speed}')
-        csv_writer.writerow([time.time(), wheel_speed, speed, servo, inf_time])
 
         # Assign the speed and steering angle to the message
         msg.drive.speed = speed
