@@ -19,11 +19,17 @@ print('GPU AVAILABLE:', gpu_available)
 #========================================================
 # Functions
 #========================================================
-
+#Linear maping
 def linear_map(x, x_min, x_max, y_min, y_max):
     """Linear mapping function."""
     return (x - x_min) / (x_max - x_min) * (y_max - y_min) + y_min
 
+#Huber Loss
+def huber_loss(y_true, y_pred, delta=1.0):
+    error = np.abs(y_true - y_pred)
+    loss = np.where(error <= delta, 0.5 * error**2, delta * (error - 0.5 * delta))
+    mean_loss = np.mean(loss)
+    return mean_loss
 #========================================================
 # Get Data
 #========================================================
@@ -35,13 +41,19 @@ speed = []
 test_lidar = []
 test_servo = []
 test_speed = []
+model_name = 'TLN_M_Dag'
 
 # Initialize variables for min and max speed
 max_speed = 0
 min_speed = 0
 
 # Iterate through bag files
-for pth in ['../../qualifier_2/out.bag', '../../f2.bag', '../../f4.bag', './dag_lab_2.bag']:
+for pth in [
+        './Dataset/qualifier_2/out.bag', 
+        './Dataset/f2.bag', 
+        './Dataset/f4.bag', 
+        './Dataset/dag_lab_2.bag'
+    ]:
     if not os.path.exists(pth):
         print(f"out.bag doesn't exist in {pth}")
         exit(0)
@@ -214,13 +226,10 @@ print(f"Servo Test Loss: {servo_test_loss}")
 #======================================================
 # Save Model
 #======================================================
-
-model_file = 'f1_tenth_model_diff_TLN_M_Dag'
-
 # Save non-quantized model
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
-tflite_model_path = model_file + "_noquantized.tflite"
+tflite_model_path = model_name + "_noquantized.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(tflite_model)
 
@@ -228,10 +237,10 @@ with open(tflite_model_path, 'wb') as f:
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 converter.target_spec.supported_types = [tf.float16]
 quantized_tflite_model = converter.convert()
-tflite_model_path = model_file + "_float16.tflite"
+tflite_model_path = model_name + "_float16.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(quantized_tflite_model)
-    print(f"{model_file}_float16.tflite is saved. Copy this file to the robot.")
+    print(f"{model_name}_float16.tflite is saved. Copy this file to the robot.")
 
 # Save int8 quantized model
 rep_32 = lidar.astype(np.float32)
@@ -247,10 +256,10 @@ converter.representative_dataset = representative_data_gen
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 quantized_tflite_model = converter.convert()
 
-tflite_model_path = model_file + "_int8.tflite"
+tflite_model_path = model_name + "_int8.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(quantized_tflite_model)
-    print(f"{model_file}_int8.tflite is saved. Copy this file to the robot.")
+    print(f"{model_name}_int8.tflite is saved. Copy this file to the robot.")
 
 print('Tf_lite Models also saved')
 
@@ -331,8 +340,8 @@ def evaluate_model(model_path, test_lidar, test_data):
     return y_pred
 
 model_files = [
-    'f1_tenth_model_diff_TLN_M_Dag_float16.tflite',
-    'f1_tenth_model_diff_TLN_M_Dag_quantized.tflite'
+    model_name+'_float16.tflite',
+    model_name+'_quantized.tflite'
 ]
 
 # Initialize empty lists to store results for each model
