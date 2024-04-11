@@ -46,7 +46,7 @@ test_speed = []
 model_name = 'TLN'
 model_files = [
     './Models/'+model_name+'_noquantized.tflite',
-    './Models/'+model_name+'_quantized.tflite'
+    './Models/'+model_name+'_int8.tflite'
 ]
 dataset_path = [
     './Dataset/out.bag', 
