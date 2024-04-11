@@ -1,14 +1,16 @@
 #Requirement Library
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+from sklearn.utils import shuffle
 import rosbag
 import time
 import subprocess
 import numpy as np
 import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from sklearn.utils import shuffle
-from sklearn.metrics import mean_squared_error, r2_score
+
 from tensorflow.keras.losses import huber
 from tensorflow.keras.optimizers import Adam
 
@@ -41,13 +43,13 @@ speed = []
 test_lidar = []
 test_servo = []
 test_speed = []
-model_name = 'TLN_M_Dag'
+model_name = 'TLN'
 model_files = [
-    model_name+'_noquantized.tflite',
-    model_name+'_quantized.tflite'
+    './Models/'+model_name+'_noquantized.tflite',
+    './Models/'+model_name+'_quantized.tflite'
 ]
 dataset_path = [
-    './Dataset/qualifier_2/out.bag', 
+    './Dataset/out.bag', 
     './Dataset/f2.bag', 
     './Dataset/f4.bag', 
     './Dataset/dag_lab_2.bag'
@@ -215,13 +217,13 @@ print("==========================================")
 
 # Evaluate test loss
 test_loss = model.evaluate(test_lidar, test_data)
-print(f'Test Loss = {test_loss}')
+print(f'Overall Test Loss = {test_loss}')
 
 # Calculate and print overall evaluation
 y_pred = model.predict(test_lidar)
 hl = huber_loss(test_data, y_pred)
 print('\nOverall Evaluation:')
-print(f'R2: {hl:.3f}')
+print(f'Overall Huber Loss: {hl:.3f}')
 
 # Calculate and print speed evaluation
 speed_y_pred = model.predict(test_lidar)[:, 1]
@@ -241,7 +243,7 @@ print(f"Servo Test Loss: {servo_test_loss}")
 # Save non-quantized model
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
-tflite_model_path = model_name + "_noquantized.tflite"
+tflite_model_path = './Models/' + model_name + "_noquantized.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(tflite_model)
     print(f"{model_name}_noquantized.tflite is saved.")
@@ -260,7 +262,7 @@ converter.representative_dataset = representative_data_gen
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 quantized_tflite_model = converter.convert()
 
-tflite_model_path = model_name + "_int8.tflite"
+tflite_model_path = './Models/' + model_name + "_int8.tflite"
 with open(tflite_model_path, 'wb') as f:
     f.write(quantized_tflite_model)
     print(f"{model_name}_int8.tflite is saved.")
@@ -344,14 +346,9 @@ def evaluate_model(model_path, test_lidar, test_data):
 
 # Initialize empty lists to store results for each model
 all_inference_times_micros = []
-all_errors = []
-all_r2_scores = []
-
 for model_name in model_files:
     y_pred, inference_times_micros = evaluate_model(model_name, test_lidar, test_data)
     all_inference_times_micros.append(inference_times_micros)
-    all_errors.append(mean_squared_error(test_data, y_pred))
-    all_r2_scores.append(r2_score(test_data, y_pred))
     
     print(f'Huber Loss for {model_name}: {huber_loss(test_data, y_pred)}\n')
 
