@@ -10,7 +10,6 @@ import tensorflow as tf
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 from tensorflow.keras.losses import huber
 from tensorflow.keras.optimizers import Adam
 
