@@ -54,6 +54,7 @@ dataset_path = [
     './Dataset/f4.bag', 
     './Dataset/dag_lab_2.bag'
 ]
+loss_figure_path = './Figures/loss_curve.png'
 down_sample_param = 2 # Down-sample Lidar data
 lr = 5e-5
 loss_function = 'huber'
@@ -204,7 +205,7 @@ plt.title('Model Loss')
 plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Test'], loc='upper left')
-plt.savefig('./loss_curve.png')
+plt.savefig(loss_figure_path)
 plt.close()
 
 #======================================================

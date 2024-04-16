@@ -20,8 +20,8 @@ start_position = None  # Start position for calculating distance traveled
 total_distance = 0.0  # Total distance traveled
 lidar_data = None  # Placeholder for Lidar data
 is_joy = rospy.get_param("/is_joy")  # Flag for manual control
-model_name = './Models/TLN_M_Dag_float16.tflite'
-down_sample_param = 2 # Down-sample Lidar data
+model_name = './Models/TLN_noquantized.tflite'
+subsample_lidar = 1 # Down-sample Lidar data: skipping lidar scan by subsample_lidar
 hz = 40  # Frequency (Hz)
 rate = rospy.Rate(hz)  # Rate controller
 period = 1.0 / hz  # Time period
@@ -29,7 +29,7 @@ period = 1.0 / hz  # Time period
 # Callback to receive Lidar data
 def callback(l):
     global lidar_data
-    ldata = l.ranges[::down_sample_param]  
+    ldata = l.ranges[::subsample_lidar]  
     ldata = np.expand_dims(ldata, axis=-1).astype(np.float32)  # Reshape and convert to float32
     ldata = np.expand_dims(ldata, axis=0)  # Add batch dimension
     lidar_data = ldata  # Store the processed Lidar data
