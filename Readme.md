@@ -25,6 +25,9 @@ Now make sure to install python libraries
 ```
 pip install rospy rosbag scikit-learn matplotlib
 ```
+## Reproducing the same Results as in Paper
+The dataset is already present in the Dataset Folder. This data is collected from the racetrack of 12th F1TENTH Competition held in CPS-IOT Week 2023. They are there bag files. The exsisting model is trained on the 85% of the aggregated data of the bag files. You can directly goto [Inference](#inference) section to test out the exsisting model.
+
 ## Data Collection
 Open a terminal and change to the TinyLidarNet directory:
 ```
@@ -80,7 +83,8 @@ The train.py script will also generate an evaluation of your trained model, incl
 
 This process will allow you to train and evaluate models based on the collected data using the TinyLidarNet setup.
 
-## Inference
+## [Inference](#inference)
+
 Stay in TinyLidarNet directory. Open a new terminal or pane (you can use tmux or split terminal) and run the following command:
 ```
 roslaunch racecar teleop.launch
