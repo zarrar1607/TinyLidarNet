@@ -26,7 +26,14 @@ Now make sure to install python libraries
 pip install rospy rosbag scikit-learn matplotlib
 ```
 ## Reproducing the same Results as in Paper
-The dataset is already present in the Dataset Folder. This data is collected from the racetrack of 12th F1TENTH Competition held in CPS-IOT Week 2023. They are there bag files. The exsisting model is trained on the 85% of the aggregated data of the bag files. You can directly goto [Inference](#inference) section to test out the exsisting model.
+1. <strong>Dataset Availability:</strong> The dataset used for training the model is located in the Dataset folder. This data was collected during the 12th F1TENTH Competition held in CPS-IOT Week 2023 and is stored as bag files. New dataset can be collected and aggregated with the exsisitng ones, that are provided in this GitHub repository.
+2. <strong>Model Training:</strong> The existing model is trained using 85% of the aggregated data from the bag files. To reproduce the results from the paper, follow these steps:
+    - Navigate to the [Inference](#inference) section to test the existing model.
+    - Or you can just train the model using train.py by running and then navigating to [Inference](#inference) section.
+    ```
+    python train.py
+    ```
+By following these steps, you can reproduce the exact results reported in the paper
 
 ## Data Collection
 Open a terminal and change to the TinyLidarNet directory:
