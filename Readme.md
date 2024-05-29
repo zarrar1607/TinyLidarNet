@@ -4,20 +4,22 @@
 [![View Slides](https://img.shields.io/badge/View-Slides-green)](Link_to_Slides)
 [![Watch Video](https://img.shields.io/badge/Watch-Video-red)](Link_to_Video)
 
+
+
 ## Setup
 This repository is designed for use with ROS Noetic. Hardware we use include an NVIDIA Jetson Xavier NX, Hokuyo Lidar UST10-LX, VESC-MKIV, and Logitech F710 Gaming Controller. The operating system used is Linux 5.10.104-tegra aarch64. Follow the steps below to set up the environment:
 
 ## Install Dependcies
 Please install:
-- ROS Noetic: Install from the official [official ROS Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu) and follow the provided instructions.
-- TensorFlow: If using an NVIDIA Jetson Xavier NX, install TensorFlow using the JetPack provided by NVIDIA. Follow the instructions on the [NVIDIA website](https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html)
+- ROS Noetic: Install from the official *[official ROS Noetic](https://wiki.ros.org/noetic/Installation/Ubuntu)* and follow the provided instructions.
+- TensorFlow: If using an NVIDIA Jetson Xavier NX, install TensorFlow using the JetPack provided by NVIDIA. Follow the instructions on the *[NVIDIA website](https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html)*
 
 Clone this repository:
 ```
 git clone https://github.com/zarrar1607/TinyLidarNet.git
 ```
 
-The ROS_Workspace folder is dedicated to setting up the ROS environment. It follows the standard steps of creating a devel folder, builder folder, and CMakeLists.txt file. Within this folder, you'll find code sourced from the [f1tenth_system repository](https://github.com/f1tenth/f1tenth_system/tree/melodic).
+The ROS_Workspace folder is dedicated to setting up the ROS environment. It follows the standard steps of creating a devel folder, builder folder, and CMakeLists.txt file. Within this folder, you'll find code sourced from the *[f1tenth_system repository](https://github.com/f1tenth/f1tenth_system/tree/melodic)*.
 
 This code has been customized to include a global joystick button functionality for seamless switching between autonomous and manual control modes. Additionally, the ROS laser filter package has been integrated into the system for enhanced sensor data processing.
 
@@ -26,7 +28,7 @@ On the terminal navigate inside the ROS_Workspace folder and execute:
 catkin_make
 source devel/setup.bash
 ```
-Next make sure to change the absolute file path in [TinyLidarNet/ROS_Workspace/src/f1tenth_system/racecar/racecar/launch/teleop.launch](https://github.com/zarrar1607/TinyLidarNet/blob/main/ROS_Workspace/src/f1tenth_system/racecar/racecar/launch/teleop.launch) for the ros-node "laser_filters" .
+Next make sure to change the absolute file path in *[TinyLidarNet/ROS_Workspace/src/f1tenth_system/racecar/racecar/launch/teleop.launch](https://github.com/zarrar1607/TinyLidarNet/blob/main/ROS_Workspace/src/f1tenth_system/racecar/racecar/launch/teleop.launch)* for the ros-node "laser_filters" .
 
 Lastly, install python libraries
 ```
@@ -35,12 +37,21 @@ pip install rospy rosbag scikit-learn matplotlib
 ## Reproducing the same Results as in Paper
 1. <strong>Dataset Availability:</strong> The dataset used for training the model is located in the Dataset folder. This data was collected during the 12th F1TENTH Competition held in CPS-IOT Week 2023 and is stored as bag files. New dataset can be collected and aggregated with the exsisitng ones, that are provided in this GitHub repository.
 2. <strong>Model Training:</strong> The existing model is trained using 85% of the aggregated data from the bag files. To reproduce the results from the paper, follow these steps:
-    - Navigate to the [Inference](#inference) section to test the existing model.
-    - Or you can just train the model using train.py by running and then navigating to [Inference](#inference) section.
+    - Navigate to the *[Inference](#inference)* section to test the existing model.
+    - Or you can just train the model using train.py by running and then navigating to *[Inference](#inference)* section.
     ```
     python train.py
     ```
-By following these steps, you can reproduce the exact results reported in the paper
+3. Reproducing the Simulation Results: To replicate the simulation results presented in our paper, we leverage the simulation environment provided by BDEvan5, as detailed in their repository - *[link](https://github.com/BDEvan5/f1tenth_benchmarks?tab=readme-ov-file)* accompanying the paper titled - *[Unifying F1TENTH Autonomous Racing: Survey, Methods and Benchmarks](https://arxiv.org/pdf/2402.18558)*. Follow these steps:
+    - Refer to the instructions outlined in the *[Repository](https://github.com/BDEvan5/f1tenth_benchmarks/blob/master/README.md)* to set up the necessary environment.
+    - Execute the script *[generate_benchmark_results.py](https://github.com/zarrar1607/TinyLidarNet/blob/main/Benchmark/f1tenth_benchmarks/benchmark_results/generate_benchmark_results.py)*. This script utilizes the pretrained models stored in  *[this directory](https://github.com/zarrar1607/TinyLidarNet/tree/main/Benchmark/f1tenth_benchmarks/zarrar)*  to produce benchmark results.
+    ```
+    python3 generate_benchmark_results.py
+    ```
+    - After generating the results, visualize them using the Jupyter notebook *[tiny_notebook.ipynb](https://github.com/zarrar1607/TinyLidarNet/blob/main/Benchmark/f1tenth_benchmarks/benchmark_results/tiny_notebook.ipynb)*
+
+
+By following these steps, you can reproduce the figures and outcomes discussed in our paper.
 
 ## Data Collection
 Open a terminal and change to the TinyLidarNet directory:
