@@ -146,7 +146,7 @@ class TinyAgent(BasePlanner):
         self.range_finder_scale = 10
 
         self.skip_n = int(np.ceil(1081 / self.planner_params.number_of_beams))
-        self.state_space = self.planner_params.number_of_beams *2 + 1 
+        self.state_space = self.planner_params.number_of_beams *2
         self.scan_buffer = np.zeros((self.planner_params.n_scans, self.planner_params.number_of_beams))
         self.actor = torch.load(self.data_root_path + f'{self.name}_actor.pth')
         

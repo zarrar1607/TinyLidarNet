@@ -5,10 +5,12 @@ from f1tenth_benchmarks.utils.BasePlanner import BasePlanner
 import tensorflow as tf
 
 class EndToEnd(BasePlanner):
-    def __init__(self, test_id):
+    def __init__(self, test_id, skip_n, model_path):
         super().__init__("EndToEnd", test_id)
         self.name = 'EndToEnd'
-        self.interpreter = tf.lite.Interpreter(model_path='/home/m810z573/Downloads/f1tenth_benchmarks/f1tenth_benchmarks/zarrar/f1_tenth_model_diff_paper_noquantized.tflite')
+        self.skip_n = skip_n
+        self.model_path = model_path
+        self.interpreter = tf.lite.Interpreter(model_path=model_path)
         self.interpreter.allocate_tensors()
         self.input_index = self.interpreter.get_input_details()[0]["index"]
         self.output_details = self.interpreter.get_output_details()
@@ -21,14 +23,13 @@ class EndToEnd(BasePlanner):
         
     def plan(self, obs):
         scans = obs['scan']
-        noise = np.random.normal(0, 0.5, scans.shape)
-        scans = scans + noise
+        scans = np.array(scans)
         scans[scans>10] = 10
-        #scans = scans[::4]
+        scans = scans[::self.skip_n]
         scans = np.expand_dims(scans, axis=-1).astype(np.float32)
         scans = np.expand_dims(scans, axis=0)
         self.interpreter.set_tensor(self.input_index, scans)
-        
+            
 
         start_time = time.time()
         self.interpreter.invoke()
@@ -38,7 +39,10 @@ class EndToEnd(BasePlanner):
 
         steer = output[0,0]
         speed = output[0,1]
-        speed = self.linear_map(speed, 0, 1, 1, 6)
+        min_speed = 1
+        max_speed = 8
+        speed = self.linear_map(speed, 0, 1, min_speed, max_speed)
+        # speed = self.linear_map(speed, 0, 1, 2.5, 8) #for all
         action = np.array([steer, speed])
 
         return action

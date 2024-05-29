@@ -30,8 +30,8 @@ class TrajectoryAidedLearningReward:
     def __call__(self, observation, prev_obs, action):
         if prev_obs is None: return 0
 
-        if observation['lap_complete']:
-            return 1  # complete
+        # if observation['lap_complete']:
+        #     return 1  # complete
         if observation['timeout']:
             return -1 # timeout
         if observation['collision']:

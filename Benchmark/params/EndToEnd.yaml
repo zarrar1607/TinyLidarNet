@@ -2,7 +2,7 @@
 # algorithm: "SAC"
 algorithm: "TD3"
 
-training_steps: 50000
+training_steps: 16000
 # training_steps: 60000
 
 max_speed: 8

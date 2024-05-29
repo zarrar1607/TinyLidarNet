@@ -2,7 +2,7 @@
 # algorithm: "SAC"
 algorithm: "TinyTD3"
 
-training_steps: 18000
+training_steps: 16000
 # training_steps: 60000
 
 max_speed: 8
