@@ -3,11 +3,26 @@
 [![Read Paper](https://img.shields.io/badge/Read-Paper-blue)](Link_to_Paper)
 [![View Slides](https://img.shields.io/badge/View-Slides-green)](Link_to_Slides)
 [![Watch Video](https://img.shields.io/badge/Watch-Video-red)](Link_to_Video)
+[![Dataset](https://img.shields.io/badge/Download-Dataset-purple)](https://github.com/zarrar1607/TinyLidarNet/tree/main/Dataset)
 
+![Simulation Result](images/TinyLidarNet.mp4)
 
+<div align="center">
+    <figure>
+        <img src="images/TinyLidarNet_Architecture.jpg" alt="Simulation Result" height="400">
+        <figcaption>Figure 1: TinyLidarNet Architecture</figcaption>
+    </figure>
+</div>
 
 ## Setup
 This repository is designed for use with ROS Noetic. Hardware we use include an NVIDIA Jetson Xavier NX, Hokuyo Lidar UST10-LX, VESC-MKIV, and Logitech F710 Gaming Controller. The operating system used is Linux 5.10.104-tegra aarch64. Follow the steps below to set up the environment:
+
+<div align="center">
+    <figure>
+        <img src="images/f1_tenth_hw_setup.jpg" alt="Simulation Result" height="400">
+        <figcaption>Figure 2: F1 Tenth Hardware Setup</figcaption>
+    </figure>
+</div>
 
 ## Install Dependcies
 Please install:
