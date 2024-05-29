@@ -9,7 +9,7 @@
 
 <div align="center">
     <figure>
-        <img src="images/TinyLidarNet_Architecture.jpg" alt="TinyLidarNet Architecture" height="400">
+        <img src="Images/TinyLidarNet_Architecture.jpg" alt="TinyLidarNet Architecture" height="400">
         <figcaption>Figure 1: TinyLidarNet Architecture</figcaption>
     </figure>
 </div>
@@ -19,7 +19,7 @@ This repository is designed for use with ROS Noetic. Hardware we use include an 
 
 <div align="center">
     <figure>
-        <img src="images/f1_tenth_hw_setup.jpg" alt="F1 Tenth Hardware Setup" height="400">
+        <img src="Images/f1_tenth_hw_setup.jpg" alt="F1 Tenth Hardware Setup" height="400">
         <figcaption>Figure 2: F1 Tenth Hardware Setup</figcaption>
     </figure>
 </div>
