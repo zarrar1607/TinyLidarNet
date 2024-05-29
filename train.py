@@ -1,6 +1,6 @@
 #Requirement Library
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # If you want utilize GPU, uncomment this line
 from sklearn.utils import shuffle
 import rosbag
 import time
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.losses import huber
 from tensorflow.keras.optimizers import Adam
 
-# Check GPU availability
+# Check GPU availability - You don't need a gpu to train this model
 gpu_available = tf.test.is_gpu_available()
 print('GPU AVAILABLE:', gpu_available)
 
@@ -50,8 +50,7 @@ model_files = [
 dataset_path = [
     './Dataset/out.bag', 
     './Dataset/f2.bag', 
-    './Dataset/f4.bag', 
-    './Dataset/dag_lab_2.bag'
+    './Dataset/f4.bag',
 ]
 loss_figure_path = './Figures/loss_curve.png'
 down_sample_param = 2 # Down-sample Lidar data

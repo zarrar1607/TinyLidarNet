@@ -20,9 +20,10 @@ start_position = None  # Start position for calculating distance traveled
 total_distance = 0.0  # Total distance traveled
 lidar_data = None  # Placeholder for Lidar data
 is_joy = rospy.get_param("/is_joy")  # Flag for manual control
-model_name = './Models/TLN_noquantized.tflite'
-subsample_lidar = 1 # Down-sample Lidar data: skipping lidar scan by subsample_lidar
-hz = 40  # Frequency (Hz)
+model_name = './Models/TLN_M_noquantized.tflite'
+subsample_lidar = 2 # Down-sample Lidar data: skipping lidar scan by subsample_lidar
+rospy.init_node('Autonomous') #ROS initialization
+hz = 40  # Frequency (Hz)\
 rate = rospy.Rate(hz)  # Rate controller
 period = 1.0 / hz  # Time period
 
@@ -92,8 +93,7 @@ def linear_map(x, x_min, x_max, y_min, y_max):
 def undo_min_max_scale(x, x_min, x_max):
     return x * (x_max - x_min) + x_min
 
-# ROS initialization
-rospy.init_node('Autonomous')
+# ROS Publisher-Subscriber
 servo_pub = rospy.Publisher('/vesc/low_level/ackermann_cmd_mux/input/teleop', AckermannDriveStamped, queue_size=10)
 rospy.Subscriber(joy, Joy, button_callback)
 rospy.Subscriber(lid, LaserScan, callback)
