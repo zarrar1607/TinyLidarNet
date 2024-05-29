@@ -5,7 +5,7 @@
 [![Watch Video](https://img.shields.io/badge/Watch-Video-red)](Link_to_Video)
 [![Dataset](https://img.shields.io/badge/Download-Dataset-purple)](https://github.com/zarrar1607/TinyLidarNet/tree/main/Dataset)
 
-![Competition Video](Images/TinyLidarNet.mp4)
+<!--![Competition Video](Images/TinyLidarNet.mp4)-->
 
 <div align="center">
     <figure>
