@@ -42,6 +42,7 @@ This code has been customized to include a global joystick button functionality 
 
 On the terminal navigate inside the ROS_Workspace folder and execute:
 ```
+cd TinyLidarNet/ROS_Workspace
 catkin_make
 source devel/setup.bash
 ```
