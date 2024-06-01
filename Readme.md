@@ -5,12 +5,16 @@
 [![Watch Video](https://img.shields.io/badge/Watch-Video-red)](Link_to_Video)
 [![Dataset](https://img.shields.io/badge/Download-Dataset-purple)](https://github.com/zarrar1607/TinyLidarNet/tree/main/Dataset)
 
-![Competition Video](https://github.com/zarrar1607/TinyLidarNet/blob/main/Images/TinyLidarNet.mp4)
+<!--![Competition Video](https://github.com/zarrar1607/TinyLidarNet/blob/main/Images/TinyLidarNet.mp4)-->
 
 <div align="center">
     <figure>
-        <img src="images/TinyLidarNet_Architecture.jpg" alt="TinyLidarNet Architecture" height="400">
-        <figcaption>Figure 1: TinyLidarNet Architecture</figcaption>
+        <div>
+            <img src="./Images/TinyLidarNet_Architecture.jpg" alt="TinyLidarNet Architecture" height="400">
+        </div>
+        <div>
+            <figcaption>Figure 1: TinyLidarNet Architecture</figcaption>
+        </div>
     </figure>
 </div>
 
@@ -19,8 +23,12 @@ This repository is designed for use with ROS Noetic. Hardware we use include an 
 
 <div align="center">
     <figure>
-        <img src="images/f1_tenth_hw_setup.jpg" alt="F1 Tenth Hardware Setup" height="400">
-        <figcaption>Figure 2: F1 Tenth Hardware Setup</figcaption>
+        <div>
+            <img src="Images/f1_tenth_hw_setup.jpg" alt="F1 Tenth Hardware Setup" height="400">
+        </div>
+        <div>
+            <figcaption>Figure 2: F1 Tenth Hardware Setup</figcaption>
+        </div>
     </figure>
 </div>
 
