@@ -62,6 +62,18 @@ pip install rospy rosbag scikit-learn matplotlib
     ```
 3. Reproducing the Simulation Results: To replicate the simulation results presented in our paper, we leverage the simulation environment provided by BDEvan5, as detailed in their repository - *[link](https://github.com/BDEvan5/f1tenth_benchmarks?tab=readme-ov-file)* accompanying the paper titled - *[Unifying F1TENTH Autonomous Racing: Survey, Methods and Benchmarks](https://arxiv.org/pdf/2402.18558)*. Follow these steps:
     - Refer to the instructions outlined in the *[Repository](https://github.com/BDEvan5/f1tenth_benchmarks/blob/master/README.md)* to set up the necessary environment.
+    ```
+    cd Benchmark
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    pip install -e .
+    git clone https://github.com/TUMFTM/trajectory_planning_helpers.git
+    cd trajectory_planning_helpers
+    pip install -e .
+    cd ../Benchmark/f1tenth_benchmarks/benchmark_results/
+    ```
+    - Before executing the script, ensure that the file paths within the Benchmark setup are configured to match your local environment. This includes any paths specified in configuration files or scripts that reference specific datasets, models, or other resources.
     - Execute the script *[generate_benchmark_results.py](https://github.com/zarrar1607/TinyLidarNet/blob/main/Benchmark/f1tenth_benchmarks/benchmark_results/generate_benchmark_results.py)*. This script utilizes the pretrained models stored in  *[this directory](https://github.com/zarrar1607/TinyLidarNet/tree/main/Benchmark/f1tenth_benchmarks/zarrar)*  to produce benchmark results.
     ```
     python3 generate_benchmark_results.py
