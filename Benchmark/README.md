@@ -101,7 +101,12 @@ The MPCC algorithms use the [casadi](https://web.casadi.org/python-api/) optimis
 If you found our work helpful, please consider citing.
 
 ```latex
-
+@article{evans2024unifying,
+  title={Unifying F1TENTH Autonomous Racing: Survey, Methods and Benchmarks},
+  author={Benjamin David Evans and Raphael Trumpp and Marco Caccamo and Felix Jahncke and Johannes Betz and Hendrik Willem Jordaan and Herman Arnold Engelbrecht},
+  journal={arXiv preprint arXiv:2402.18558},
+  year={2024}
+}
 ```
 
 
